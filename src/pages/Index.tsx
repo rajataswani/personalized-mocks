@@ -33,7 +33,19 @@ const Index = () => {
     setAnswers((prev) => ({ ...prev, [currentQuestion]: answerIndex }));
   };
 
-  const handleNext = () => {
+  const handleSkip = () => {
+    setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
+  };
+
+  const handleSaveAndNext = () => {
+    if (answers[currentQuestion] === undefined) {
+      toast({
+        title: "Please select an answer",
+        description: "You must select an answer before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
     setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
   };
 
@@ -67,7 +79,7 @@ const Index = () => {
       return answers[index] !== undefined ? "default" : "outline";
     }
     const isCorrect = isAnswerCorrect(index);
-    if (isCorrect === true) return "success";
+    if (isCorrect === true) return "secondary";
     if (isCorrect === false) return "destructive";
     return "outline";
   };
@@ -128,9 +140,20 @@ const Index = () => {
               Submit Test
             </Button>
             {currentQuestion !== questions.length - 1 && (
-              <Button onClick={handleNext}>
-                {answers[currentQuestion] !== undefined ? "Save & Next" : "Skip & Next"}
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleSkip}
+                >
+                  Skip
+                </Button>
+                <Button 
+                  onClick={handleSaveAndNext}
+                  disabled={answers[currentQuestion] === undefined}
+                >
+                  Save & Next
+                </Button>
+              </>
             )}
           </div>
         </div>
