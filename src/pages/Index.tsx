@@ -53,6 +53,16 @@ const Index = () => {
     setCurrentQuestion((prev) => Math.max(prev - 1, 0));
   };
 
+  const handleReset = () => {
+    setAnswers({});
+    setCurrentQuestion(0);
+    setIsSubmitted(false);
+    toast({
+      title: "Test Reset",
+      description: "All answers have been cleared. You can start fresh.",
+    });
+  };
+
   const handleSubmit = () => {
     const score = questions.reduce((acc, q, index) => {
       return acc + (answers[index] === q.correctAnswer ? 1 : 0);
@@ -123,13 +133,22 @@ const Index = () => {
         </div>
 
         <div className="flex justify-between items-center">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentQuestion === 0}
-          >
-            Previous
-          </Button>
+          <div className="space-x-4">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentQuestion === 0}
+            >
+              Previous
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleReset}
+              disabled={isSubmitted}
+            >
+              Reset Test
+            </Button>
+          </div>
           
           <div className="space-x-4">
             <Button 
