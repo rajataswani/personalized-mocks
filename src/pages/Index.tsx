@@ -5,7 +5,6 @@ import { Question } from "@/components/Question";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// Sample questions - in a real app, these would come from an API
 const questions = [
   {
     question: "What is the capital of France?",
@@ -27,6 +26,7 @@ const questions = [
 const Index = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
   const handleAnswer = (answerIndex: number) => {
@@ -34,14 +34,6 @@ const Index = () => {
   };
 
   const handleNext = () => {
-    if (answers[currentQuestion] === undefined) {
-      toast({
-        title: "Please select an answer",
-        description: "You must select an answer before proceeding.",
-        variant: "destructive",
-      });
-      return;
-    }
     setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
   };
 
@@ -54,6 +46,7 @@ const Index = () => {
       return acc + (answers[index] === q.correctAnswer ? 1 : 0);
     }, 0);
 
+    setIsSubmitted(true);
     toast({
       title: "Test Completed!",
       description: `Your score: ${score}/${questions.length}`,
@@ -62,6 +55,21 @@ const Index = () => {
 
   const navigateToQuestion = (index: number) => {
     setCurrentQuestion(index);
+  };
+
+  const isAnswerCorrect = (questionIndex: number) => {
+    if (!isSubmitted || answers[questionIndex] === undefined) return null;
+    return answers[questionIndex] === questions[questionIndex].correctAnswer;
+  };
+
+  const getButtonVariant = (index: number) => {
+    if (!isSubmitted) {
+      return answers[index] !== undefined ? "default" : "outline";
+    }
+    const isCorrect = isAnswerCorrect(index);
+    if (isCorrect === true) return "success";
+    if (isCorrect === false) return "destructive";
+    return "outline";
   };
 
   return (
@@ -78,7 +86,7 @@ const Index = () => {
               {questions.map((_, index) => (
                 <Button
                   key={index}
-                  variant={answers[index] !== undefined ? "default" : "outline"}
+                  variant={getButtonVariant(index)}
                   size="sm"
                   onClick={() => navigateToQuestion(index)}
                   className={currentQuestion === index ? "ring-2 ring-primary" : ""}
@@ -98,6 +106,7 @@ const Index = () => {
             options={questions[currentQuestion].options}
             onAnswer={handleAnswer}
             selectedAnswer={answers[currentQuestion]}
+            correctAnswer={isSubmitted ? questions[currentQuestion].correctAnswer : undefined}
           />
         </div>
 
@@ -114,11 +123,14 @@ const Index = () => {
             <Button 
               variant="destructive"
               onClick={handleSubmit}
+              disabled={isSubmitted}
             >
               Submit Test
             </Button>
             {currentQuestion !== questions.length - 1 && (
-              <Button onClick={handleNext}>Next Question</Button>
+              <Button onClick={handleNext}>
+                {answers[currentQuestion] !== undefined ? "Save & Next" : "Skip & Next"}
+              </Button>
             )}
           </div>
         </div>
