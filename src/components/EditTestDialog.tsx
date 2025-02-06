@@ -18,6 +18,19 @@ interface Question {
   correctAnswer: number;
 }
 
+interface ImportedQuestion {
+  question: string;
+  options: {
+    [key: string]: string;
+  };
+  correct_answer: number;
+}
+
+interface ImportedJSON {
+  test_name?: string;
+  questions: ImportedQuestion[];
+}
+
 interface EditTestDialogProps {
   questions: Question[];
   onQuestionsChange: (questions: Question[]) => void;
@@ -62,32 +75,26 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
 
   const handleJsonImport = () => {
     try {
-      const parsedQuestions = JSON.parse(jsonInput);
+      const parsedJson: ImportedJSON = JSON.parse(jsonInput);
       
-      // Validate the structure of parsed questions
-      if (!Array.isArray(parsedQuestions)) {
-        throw new Error('JSON must be an array of questions');
+      if (!Array.isArray(parsedJson.questions)) {
+        throw new Error('JSON must contain a questions array');
       }
 
-      const validQuestions = parsedQuestions.every((q: any) => 
-        typeof q.question === 'string' &&
-        Array.isArray(q.options) &&
-        q.options.length === 4 &&
-        typeof q.correctAnswer === 'number' &&
-        q.correctAnswer >= 0 &&
-        q.correctAnswer < 4
-      );
+      const formattedQuestions: Question[] = parsedJson.questions.map(q => ({
+        question: q.question,
+        // Convert options object to array
+        options: Object.values(q.options),
+        // Adjust correct_answer to be zero-based
+        correctAnswer: q.correct_answer - 1
+      }));
 
-      if (!validQuestions) {
-        throw new Error('Invalid question format');
-      }
-
-      onQuestionsChange([...questions, ...parsedQuestions]);
+      onQuestionsChange([...questions, ...formattedQuestions]);
       setJsonInput("");
       
       toast({
         title: "Import Successful",
-        description: `Added ${parsedQuestions.length} questions from JSON.`,
+        description: `Added ${formattedQuestions.length} questions${parsedJson.test_name ? ` from "${parsedJson.test_name}"` : ''}.`,
       });
     } catch (error) {
       toast({
