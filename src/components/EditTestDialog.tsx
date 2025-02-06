@@ -11,8 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import * as pdfjs from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
+
+// Initialize PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface Question {
   question: string;
@@ -67,7 +70,7 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
       
       if (file.type === 'application/pdf') {
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
@@ -94,7 +97,6 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
         );
         
         // Default to first option as correct answer
-        // In real implementation, you'd need a way to specify correct answers
         return {
           question,
           options,
