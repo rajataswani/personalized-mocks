@@ -9,7 +9,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import * as pdfjs from 'pdfjs-dist';
+import mammoth from 'mammoth';
 
 interface Question {
   question: string;
@@ -26,9 +29,15 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
   const [newQuestion, setNewQuestion] = useState("");
   const [newOptions, setNewOptions] = useState(["", "", "", ""]);
   const [newCorrectAnswer, setNewCorrectAnswer] = useState(0);
+  const { toast } = useToast();
 
   const handleAddQuestion = () => {
     if (!newQuestion || newOptions.some(opt => !opt)) {
+      toast({
+        title: "Invalid Question",
+        description: "Please fill in all fields before adding the question.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -52,6 +61,81 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
     onQuestionsChange(updatedQuestions);
   };
 
+  const parseFileContent = async (file: File) => {
+    try {
+      let text = '';
+      
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((item: any) => item.str).join(' ');
+        }
+      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                 file.type === 'application/msword') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+      } else {
+        throw new Error('Unsupported file type');
+      }
+
+      // Simple parsing logic - assumes questions are numbered and options are lettered
+      const questionBlocks = text.split(/\d+\.\s+/).filter(Boolean);
+      
+      const parsedQuestions = questionBlocks.map(block => {
+        const lines = block.split('\n').filter(line => line.trim());
+        const question = lines[0].trim();
+        const options = lines.slice(1, 5).map(line => 
+          line.replace(/^[A-D][\)\.]\s*/, '').trim()
+        );
+        
+        // Default to first option as correct answer
+        // In real implementation, you'd need a way to specify correct answers
+        return {
+          question,
+          options,
+          correctAnswer: 0
+        };
+      });
+
+      onQuestionsChange([...questions, ...parsedQuestions]);
+      
+      toast({
+        title: "Import Successful",
+        description: `Added ${parsedQuestions.length} questions from the file.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Failed to parse the file. Please check the format and try again.",
+        variant: "destructive",
+      });
+      console.error('File parsing error:', error);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf' && 
+        file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' &&
+        file.type !== 'application/msword') {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a PDF or Word document.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    parseFileContent(file);
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -66,6 +150,28 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* File Upload */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Import Questions from File
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileUpload}
+                className="flex-1"
+              />
+              <Button variant="outline" className="gap-2">
+                <Upload className="h-4 w-4" />
+                Import
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500">
+              Upload a PDF or Word document containing questions
+            </p>
+          </div>
+
           {/* Existing Questions */}
           <div className="space-y-4">
             <h3 className="font-medium">Current Questions</h3>
