@@ -4,8 +4,15 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { Question } from "@/components/Question";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { EditTestDialog } from "@/components/EditTestDialog";
 
-const questions = [
+interface QuestionType {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
+
+const defaultQuestions = [
   {
     question: "What is the capital of France?",
     options: ["London", "Berlin", "Paris", "Madrid"],
@@ -24,6 +31,7 @@ const questions = [
 ];
 
 const Index = () => {
+  const [questions, setQuestions] = useState<QuestionType[]>(defaultQuestions);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -98,8 +106,12 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
-          <Timer />
+          <EditTestDialog 
+            questions={questions}
+            onQuestionsChange={setQuestions}
+          />
           <div className="flex items-center space-x-4">
+            <Timer />
             <div className="text-sm text-gray-500">
               Question {currentQuestion + 1} of {questions.length}
             </div>
