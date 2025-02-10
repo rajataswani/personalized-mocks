@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Timer } from "@/components/Timer";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -10,6 +11,8 @@ interface QuestionType {
   question: string;
   options: string[];
   correctAnswer: number;
+  marks?: number;
+  negativeMark?: number;
 }
 
 const defaultQuestions = [
@@ -17,16 +20,22 @@ const defaultQuestions = [
     question: "What is the capital of France?",
     options: ["London", "Berlin", "Paris", "Madrid"],
     correctAnswer: 2,
+    marks: 2,
+    negativeMark: -0.66,
   },
   {
     question: "Which planet is known as the Red Planet?",
     options: ["Venus", "Mars", "Jupiter", "Saturn"],
     correctAnswer: 1,
+    marks: 2,
+    negativeMark: -0.66,
   },
   {
     question: "What is 2 + 2?",
     options: ["3", "4", "5", "6"],
     correctAnswer: 1,
+    marks: 2,
+    negativeMark: -0.66,
   },
 ];
 
@@ -71,15 +80,39 @@ const Index = () => {
     });
   };
 
-  const handleSubmit = () => {
-    const score = questions.reduce((acc, q, index) => {
-      return acc + (answers[index] === q.correctAnswer ? 1 : 0);
-    }, 0);
+  const calculateScore = () => {
+    let totalScore = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let skippedCount = 0;
 
+    questions.forEach((q, index) => {
+      const userAnswer = answers[index];
+      if (userAnswer === undefined) {
+        skippedCount++;
+      } else if (userAnswer === q.correctAnswer) {
+        totalScore += q.marks || 2;
+        correctCount++;
+      } else {
+        totalScore += q.negativeMark || -0.66;
+        wrongCount++;
+      }
+    });
+
+    return {
+      totalScore: totalScore.toFixed(2),
+      correctCount,
+      wrongCount,
+      skippedCount,
+    };
+  };
+
+  const handleSubmit = () => {
+    const results = calculateScore();
     setIsSubmitted(true);
     toast({
       title: "Test Completed!",
-      description: `Your score: ${score}/${questions.length}`,
+      description: `Score: ${results.totalScore} | Correct: ${results.correctCount} | Wrong: ${results.wrongCount} | Skipped: ${results.skippedCount}`,
     });
   };
 
@@ -156,7 +189,6 @@ const Index = () => {
             <Button 
               variant="outline" 
               onClick={handleReset}
-              disabled={isSubmitted}
             >
               Reset Test
             </Button>

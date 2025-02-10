@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,13 +10,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Question {
   question: string;
   options: string[];
   correctAnswer: number;
+  marks?: number;
+  negativeMark?: number;
 }
 
 interface ImportedQuestion {
@@ -41,6 +51,8 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
   const [newOptions, setNewOptions] = useState(["", "", "", ""]);
   const [newCorrectAnswer, setNewCorrectAnswer] = useState(0);
   const [jsonInput, setJsonInput] = useState("");
+  const [globalMarks, setGlobalMarks] = useState("2");
+  const [globalNegativeMarks, setGlobalNegativeMarks] = useState("-0.66");
   const { toast } = useToast();
 
   const handleAddQuestion = () => {
@@ -59,6 +71,8 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
         question: newQuestion,
         options: [...newOptions],
         correctAnswer: newCorrectAnswer,
+        marks: Number(globalMarks),
+        negativeMark: Number(globalNegativeMarks),
       },
     ];
 
@@ -83,10 +97,10 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
 
       const formattedQuestions: Question[] = parsedJson.questions.map(q => ({
         question: q.question,
-        // Convert options object to array
         options: Object.values(q.options),
-        // Adjust correct_answer to be zero-based
-        correctAnswer: q.correct_answer - 1
+        correctAnswer: q.correct_answer - 1,
+        marks: Number(globalMarks),
+        negativeMark: Number(globalNegativeMarks),
       }));
 
       onQuestionsChange([...questions, ...formattedQuestions]);
@@ -105,6 +119,19 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
     }
   };
 
+  const applyGlobalMarks = () => {
+    const updatedQuestions = questions.map(q => ({
+      ...q,
+      marks: Number(globalMarks),
+      negativeMark: Number(globalNegativeMarks),
+    }));
+    onQuestionsChange(updatedQuestions);
+    toast({
+      title: "Marks Updated",
+      description: "Applied marking scheme to all questions.",
+    });
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -119,6 +146,37 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Global Marking Scheme */}
+          <div className="space-y-4 border p-4 rounded-lg">
+            <h3 className="font-medium flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Global Marking Scheme
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Marks for Correct Answer</label>
+                <Input
+                  type="number"
+                  value={globalMarks}
+                  onChange={(e) => setGlobalMarks(e.target.value)}
+                  step="0.5"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Negative Marks</label>
+                <Input
+                  type="number"
+                  value={globalNegativeMarks}
+                  onChange={(e) => setGlobalNegativeMarks(e.target.value)}
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <Button onClick={applyGlobalMarks} className="w-full">
+              Apply to All Questions
+            </Button>
+          </div>
+
           {/* JSON Import */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -153,6 +211,36 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
                       </li>
                     ))}
                   </ul>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Marks"
+                      value={q.marks || globalMarks}
+                      onChange={(e) => {
+                        const updatedQuestions = [...questions];
+                        updatedQuestions[index] = {
+                          ...q,
+                          marks: Number(e.target.value),
+                        };
+                        onQuestionsChange(updatedQuestions);
+                      }}
+                      className="text-sm"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Negative Marks"
+                      value={q.negativeMark || globalNegativeMarks}
+                      onChange={(e) => {
+                        const updatedQuestions = [...questions];
+                        updatedQuestions[index] = {
+                          ...q,
+                          negativeMark: Number(e.target.value),
+                        };
+                        onQuestionsChange(updatedQuestions);
+                      }}
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
