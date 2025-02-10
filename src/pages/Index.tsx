@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Timer } from "@/components/Timer";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -62,6 +61,24 @@ const Index = () => {
   const [isStarted, setIsStarted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const { toast } = useToast();
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto space-y-8">
+          <div className="flex items-center justify-between">
+            <EditTestDialog 
+              questions={questions}
+              onQuestionsChange={setQuestions}
+            />
+          </div>
+          <div className="bg-white shadow-sm rounded-xl p-6 text-center">
+            <p className="text-gray-500">No questions available. Please add questions using the Edit Test button.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleAnswer = (answerIndex: number) => {
     if (!isStarted) {
