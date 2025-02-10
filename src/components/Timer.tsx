@@ -1,15 +1,24 @@
+
 import { useEffect, useState } from "react";
 
-export const Timer = () => {
+interface TimerProps {
+  isRunning: boolean;
+}
+
+export const Timer = ({ isRunning }: TimerProps) => {
   const [time, setTime] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTime((prev) => prev + 1);
-    }, 1000);
+    let timer: NodeJS.Timeout;
+    
+    if (isRunning) {
+      timer = setInterval(() => {
+        setTime((prev) => prev + 1);
+      }, 1000);
+    }
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isRunning]);
 
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;

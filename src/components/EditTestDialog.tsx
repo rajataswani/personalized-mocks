@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -132,6 +131,14 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
     });
   };
 
+  const handleClearAllQuestions = () => {
+    onQuestionsChange([]);
+    toast({
+      title: "Questions Cleared",
+      description: "All questions have been removed from the test.",
+    });
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -146,7 +153,14 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Global Marking Scheme */}
+          <Button 
+            variant="destructive" 
+            onClick={handleClearAllQuestions}
+            className="w-full"
+          >
+            Clear All Questions
+          </Button>
+
           <div className="space-y-4 border p-4 rounded-lg">
             <h3 className="font-medium flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -177,7 +191,6 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
             </Button>
           </div>
 
-          {/* JSON Import */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
               Import Questions from JSON
@@ -197,7 +210,6 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
             </Button>
           </div>
 
-          {/* Existing Questions */}
           <div className="space-y-4">
             <h3 className="font-medium">Current Questions</h3>
             {questions.map((q, index) => (
@@ -253,7 +265,6 @@ export function EditTestDialog({ questions, onQuestionsChange }: EditTestDialogP
             ))}
           </div>
 
-          {/* Add New Question */}
           <div className="space-y-4 border-t pt-4">
             <h3 className="font-medium">Add New Question</h3>
             <Textarea

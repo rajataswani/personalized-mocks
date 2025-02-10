@@ -6,6 +6,21 @@ import { Question } from "@/components/Question";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditTestDialog } from "@/components/EditTestDialog";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 interface QuestionType {
   question: string;
@@ -44,17 +59,29 @@ const Index = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const { toast } = useToast();
 
   const handleAnswer = (answerIndex: number) => {
+    if (!isStarted) {
+      toast({
+        title: "Test not started",
+        description: "Please click 'Start Test' to begin.",
+        variant: "destructive",
+      });
+      return;
+    }
     setAnswers((prev) => ({ ...prev, [currentQuestion]: answerIndex }));
   };
 
   const handleSkip = () => {
+    if (!isStarted) return;
     setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
   };
 
   const handleSaveAndNext = () => {
+    if (!isStarted) return;
     if (answers[currentQuestion] === undefined) {
       toast({
         title: "Please select an answer",
@@ -67,6 +94,7 @@ const Index = () => {
   };
 
   const handlePrevious = () => {
+    if (!isStarted) return;
     setCurrentQuestion((prev) => Math.max(prev - 1, 0));
   };
 
@@ -74,6 +102,8 @@ const Index = () => {
     setAnswers({});
     setCurrentQuestion(0);
     setIsSubmitted(false);
+    setIsStarted(false);
+    setShowResults(false);
     toast({
       title: "Test Reset",
       description: "All answers have been cleared. You can start fresh.",
@@ -108,8 +138,11 @@ const Index = () => {
   };
 
   const handleSubmit = () => {
+    if (!isStarted) return;
     const results = calculateScore();
     setIsSubmitted(true);
+    setIsStarted(false);
+    setShowResults(true);
     toast({
       title: "Test Completed!",
       description: `Score: ${results.totalScore} | Correct: ${results.correctCount} | Wrong: ${results.wrongCount} | Skipped: ${results.skippedCount}`,
@@ -117,6 +150,7 @@ const Index = () => {
   };
 
   const navigateToQuestion = (index: number) => {
+    if (!isStarted && !isSubmitted) return;
     setCurrentQuestion(index);
   };
 
@@ -135,16 +169,40 @@ const Index = () => {
     return "outline";
   };
 
+  const getButtonStyle = (index: number) => {
+    if (!isSubmitted) return {};
+    const isCorrect = isAnswerCorrect(index);
+    if (isCorrect === true) return { backgroundColor: '#22c55e' };
+    if (isCorrect === false) return { backgroundColor: '#ef4444' };
+    return { backgroundColor: '#ffffff' };
+  };
+
+  const getResultsChartData = () => {
+    const results = calculateScore();
+    return [
+      { name: 'Results', Correct: results.correctCount, Wrong: results.wrongCount, Skipped: results.skippedCount }
+    ];
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
-          <EditTestDialog 
-            questions={questions}
-            onQuestionsChange={setQuestions}
-          />
           <div className="flex items-center space-x-4">
-            <Timer />
+            <Button
+              onClick={() => setIsStarted(true)}
+              disabled={isStarted || isSubmitted}
+              variant="outline"
+            >
+              Start Test
+            </Button>
+            <EditTestDialog 
+              questions={questions}
+              onQuestionsChange={setQuestions}
+            />
+          </div>
+          <div className="flex items-center space-x-4">
+            <Timer isRunning={isStarted} />
             <div className="text-sm text-gray-500">
               Question {currentQuestion + 1} of {questions.length}
             </div>
@@ -157,6 +215,7 @@ const Index = () => {
                   size="sm"
                   onClick={() => navigateToQuestion(index)}
                   className={currentQuestion === index ? "ring-2 ring-primary" : ""}
+                  style={getButtonStyle(index)}
                 >
                   {index + 1}
                 </Button>
@@ -182,7 +241,7 @@ const Index = () => {
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentQuestion === 0}
+              disabled={currentQuestion === 0 || !isStarted}
             >
               Previous
             </Button>
@@ -198,7 +257,7 @@ const Index = () => {
             <Button 
               variant="destructive"
               onClick={handleSubmit}
-              disabled={isSubmitted}
+              disabled={isSubmitted || !isStarted}
             >
               Submit Test
             </Button>
@@ -207,12 +266,13 @@ const Index = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleSkip}
+                  disabled={!isStarted}
                 >
                   Skip
                 </Button>
                 <Button 
                   onClick={handleSaveAndNext}
-                  disabled={answers[currentQuestion] === undefined}
+                  disabled={answers[currentQuestion] === undefined || !isStarted}
                 >
                   Save & Next
                 </Button>
@@ -221,6 +281,46 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={showResults} onOpenChange={setShowResults}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Test Results</DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-4 text-center">
+              {Object.entries(calculateScore()).map(([key, value]) => (
+                <div key={key} className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</h3>
+                  <p className="text-2xl font-bold text-primary">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-center pt-4">
+              <BarChart
+                width={500}
+                height={300}
+                data={getResultsChartData()}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Correct" fill="#22c55e" />
+                <Bar dataKey="Wrong" fill="#ef4444" />
+                <Bar dataKey="Skipped" fill="#94a3b8" />
+              </BarChart>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
