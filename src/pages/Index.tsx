@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Timer } from "@/components/Timer";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Question } from "@/components/Question";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditTestDialog } from "@/components/EditTestDialog";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
 import { 
   Dialog,
   DialogContent,
@@ -60,25 +63,74 @@ const Index = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [testName, setTestName] = useState("");
+  const [testHistory, setTestHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
 
-  if (questions.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <div className="flex items-center justify-between">
-            <EditTestDialog 
-              questions={questions}
-              onQuestionsChange={setQuestions}
-            />
-          </div>
-          <div className="bg-white shadow-sm rounded-xl p-6 text-center">
-            <p className="text-gray-500">No questions available. Please add questions using the Edit Test button.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchTestHistory();
+  }, []);
+
+  const fetchTestHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('test_results')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setTestHistory(data || []);
+    } catch (error) {
+      toast({
+        title: "Error fetching history",
+        description: "Could not load test history.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveTestResult = async (results: any) => {
+    if (!testName.trim()) {
+      toast({
+        title: "Test name required",
+        description: "Please enter a name for your test before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('test_results')
+        .insert([
+          {
+            test_name: testName,
+            score: Number(results.totalScore),
+            correct_count: results.correctCount,
+            wrong_count: results.wrongCount,
+            skipped_count: results.skippedCount,
+            total_questions: questions.length,
+            created_at: new Date().toISOString(),
+          }
+        ]);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Test Result Saved",
+        description: "Your test result has been saved successfully.",
+      });
+      
+      fetchTestHistory();
+    } catch (error) {
+      toast({
+        title: "Error saving result",
+        description: "Could not save test result.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleAnswer = (answerIndex: number) => {
     if (!isStarted) {
@@ -160,6 +212,7 @@ const Index = () => {
     setIsSubmitted(true);
     setIsStarted(false);
     setShowResults(true);
+    saveTestResult(results);
     toast({
       title: "Test Completed!",
       description: `Score: ${results.totalScore} | Correct: ${results.correctCount} | Wrong: ${results.wrongCount} | Skipped: ${results.skippedCount}`,
@@ -206,17 +259,32 @@ const Index = () => {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button
-              onClick={() => setIsStarted(true)}
-              disabled={isStarted || isSubmitted}
-              variant="outline"
-            >
-              Start Test
-            </Button>
-            <EditTestDialog 
-              questions={questions}
-              onQuestionsChange={setQuestions}
-            />
+            <div className="flex gap-4">
+              <Input
+                placeholder="Enter test name"
+                value={testName}
+                onChange={(e) => setTestName(e.target.value)}
+                className="w-48"
+                disabled={isStarted || isSubmitted}
+              />
+              <Button
+                onClick={() => setIsStarted(true)}
+                disabled={isStarted || isSubmitted || !testName.trim()}
+                variant="outline"
+              >
+                Start Test
+              </Button>
+              <EditTestDialog 
+                questions={questions}
+                onQuestionsChange={setQuestions}
+              />
+              <Button
+                variant="outline"
+                onClick={() => setShowHistory(true)}
+              >
+                View History
+              </Button>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <Timer isRunning={isStarted} />
@@ -299,6 +367,51 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Test History Dialog */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Test History</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {testHistory.map((result, index) => (
+              <div key={index} className="bg-white p-4 rounded-lg shadow space-y-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-lg">{result.test_name}</h3>
+                  <span className="text-sm text-gray-500">
+                    {format(new Date(result.created_at), 'PPpp')}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">Score</p>
+                    <p className="font-semibold">{result.score}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">Correct</p>
+                    <p className="font-semibold text-green-600">{result.correct_count}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">Wrong</p>
+                    <p className="font-semibold text-red-600">{result.wrong_count}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">Skipped</p>
+                    <p className="font-semibold text-gray-600">{result.skipped_count}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {testHistory.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                No test history available
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Results Dialog */}
       <Dialog open={showResults} onOpenChange={setShowResults}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
