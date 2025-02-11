@@ -60,6 +60,7 @@ const Index = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [timerReset, setTimerReset] = useState(false);
   const { toast } = useToast();
 
   if (questions.length === 0) {
@@ -121,6 +122,8 @@ const Index = () => {
     setIsSubmitted(false);
     setIsStarted(false);
     setShowResults(false);
+    setTimerReset(true);
+    setTimeout(() => setTimerReset(false), 100);
     toast({
       title: "Test Reset",
       description: "All answers have been cleared. You can start fresh.",
@@ -219,11 +222,10 @@ const Index = () => {
             />
           </div>
           <div className="flex items-center space-x-4">
-            <Timer isRunning={isStarted} />
+            <Timer isRunning={isStarted} shouldReset={timerReset} />
             <div className="text-sm text-gray-500">
               Question {currentQuestion + 1} of {questions.length}
             </div>
-            {/* Question Navigation Panel */}
             <div className="flex flex-wrap gap-2 max-w-[200px]">
               {questions.map((_, index) => (
                 <Button
