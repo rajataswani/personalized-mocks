@@ -424,53 +424,55 @@ const Index = () => {
             <DialogTitle>Test Results</DialogTitle>
           </DialogHeader>
           <div className="p-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Q.No</TableHead>
-                  <TableHead>Your Answer</TableHead>
-                  <TableHead>Correct Answer</TableHead>
-                  <TableHead>Time Taken</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Marks</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {questions.map((question, index) => {
-                  const userAnswer = answers[index];
-                  const isCorrect = userAnswer === question.correctAnswer;
-                  const marks = userAnswer === undefined ? 0 : 
-                    isCorrect ? question.marks : question.negativeMark;
+            <div className="max-h-[60vh] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky top-0 bg-white">Q.No</TableHead>
+                    <TableHead className="sticky top-0 bg-white">Your Answer</TableHead>
+                    <TableHead className="sticky top-0 bg-white">Correct Answer</TableHead>
+                    <TableHead className="sticky top-0 bg-white">Time Taken</TableHead>
+                    <TableHead className="sticky top-0 bg-white">Status</TableHead>
+                    <TableHead className="sticky top-0 bg-white">Marks</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {questions.map((question, index) => {
+                    const userAnswer = answers[index];
+                    const isCorrect = userAnswer === question.correctAnswer;
+                    const marks = userAnswer === undefined ? 0 : 
+                      isCorrect ? question.marks : question.negativeMark;
 
-                  return (
-                    <TableRow key={index}>
-                      <TableCell>Question {index + 1}</TableCell>
-                      <TableCell>
-                        {userAnswer !== undefined ? question.options[userAnswer] : "Skipped"}
-                      </TableCell>
-                      <TableCell>{question.options[question.correctAnswer]}</TableCell>
-                      <TableCell>{formatTime(questionTimes[index] || 0)}</TableCell>
-                      <TableCell>
-                        {userAnswer === undefined ? (
-                          <span className="text-gray-500">Skipped</span>
-                        ) : isCorrect ? (
-                          <span className="text-green-600">Correct</span>
-                        ) : (
-                          <span className="text-red-600">Wrong</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{marks}</TableCell>
-                    </TableRow>
-                  );
-                })}
-                <TableRow>
-                  <TableCell colSpan={3} className="font-semibold">Total</TableCell>
-                  <TableCell className="font-semibold">{formatTime(totalTime)}</TableCell>
-                  <TableCell colSpan={1}></TableCell>
-                  <TableCell className="font-semibold">{calculateScore().totalScore}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>Question {index + 1}</TableCell>
+                        <TableCell>
+                          {userAnswer !== undefined ? question.options[userAnswer] : "Skipped"}
+                        </TableCell>
+                        <TableCell>{question.options[question.correctAnswer]}</TableCell>
+                        <TableCell>{formatTime(questionTimes[index] || 0)}</TableCell>
+                        <TableCell>
+                          {userAnswer === undefined ? (
+                            <span className="text-gray-500">Skipped</span>
+                          ) : isCorrect ? (
+                            <span className="text-green-600">Correct</span>
+                          ) : (
+                            <span className="text-red-600">Wrong</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{marks}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow>
+                    <TableCell colSpan={3} className="font-semibold">Total</TableCell>
+                    <TableCell className="font-semibold">{formatTime(totalTime)}</TableCell>
+                    <TableCell colSpan={1}></TableCell>
+                    <TableCell className="font-semibold">{calculateScore().totalScore}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
