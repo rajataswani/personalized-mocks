@@ -12,14 +12,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface QuestionType {
   question: string;
@@ -57,10 +56,12 @@ const Index = () => {
   const [questions, setQuestions] = useState<QuestionType[]>(defaultQuestions);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [questionTimes, setQuestionTimes] = useState<Record<number, number>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [timerReset, setTimerReset] = useState(false);
+  const [totalTime, setTotalTime] = useState(0);
   const { toast } = useToast();
 
   if (questions.length === 0) {
@@ -123,6 +124,8 @@ const Index = () => {
     setIsStarted(false);
     setShowResults(false);
     setTimerReset(true);
+    setQuestionTimes({});
+    setTotalTime(0);
     setTimeout(() => setTimerReset(false), 100);
     toast({
       title: "Test Reset",
@@ -204,6 +207,20 @@ const Index = () => {
     ];
   };
 
+  const handleTimeUpdate = (time: number) => {
+    setTotalTime(time);
+    setQuestionTimes(prev => ({
+      ...prev,
+      [currentQuestion]: time - (Object.values(questionTimes).reduce((a, b) => a + b, 0) || 0)
+    }));
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -222,7 +239,11 @@ const Index = () => {
             />
           </div>
           <div className="flex items-center space-x-4">
-            <Timer isRunning={isStarted} shouldReset={timerReset} />
+            <Timer 
+              isRunning={isStarted} 
+              shouldReset={timerReset}
+              onTimeUpdate={handleTimeUpdate}
+            />
             <div className="text-sm text-gray-500">
               Question {currentQuestion + 1} of {questions.length}
             </div>
@@ -253,6 +274,9 @@ const Index = () => {
             selectedAnswer={answers[currentQuestion]}
             correctAnswer={isSubmitted ? questions[currentQuestion].correctAnswer : undefined}
           />
+          <div className="mt-4 text-sm text-gray-500">
+            Time spent on this question: {formatTime(questionTimes[currentQuestion] || 0)}
+          </div>
         </div>
 
         <div className="flex justify-between items-center">
@@ -306,37 +330,54 @@ const Index = () => {
           <DialogHeader>
             <DialogTitle>Test Results</DialogTitle>
           </DialogHeader>
-          <div className="p-6 space-y-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              {Object.entries(calculateScore()).map(([key, value]) => (
-                <div key={key} className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</h3>
-                  <p className="text-2xl font-bold text-primary">{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center pt-4">
-              <BarChart
-                width={500}
-                height={300}
-                data={getResultsChartData()}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Correct" fill="#22c55e" />
-                <Bar dataKey="Wrong" fill="#ef4444" />
-                <Bar dataKey="Skipped" fill="#94a3b8" />
-              </BarChart>
-            </div>
+          <div className="p-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Question</TableHead>
+                  <TableHead>Your Answer</TableHead>
+                  <TableHead>Correct Answer</TableHead>
+                  <TableHead>Time Taken</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Marks</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {questions.map((question, index) => {
+                  const userAnswer = answers[index];
+                  const isCorrect = userAnswer === question.correctAnswer;
+                  const marks = userAnswer === undefined ? 0 : 
+                    isCorrect ? question.marks : question.negativeMark;
+
+                  return (
+                    <TableRow key={index}>
+                      <TableCell>{question.question}</TableCell>
+                      <TableCell>
+                        {userAnswer !== undefined ? question.options[userAnswer] : "Skipped"}
+                      </TableCell>
+                      <TableCell>{question.options[question.correctAnswer]}</TableCell>
+                      <TableCell>{formatTime(questionTimes[index] || 0)}</TableCell>
+                      <TableCell>
+                        {userAnswer === undefined ? (
+                          <span className="text-gray-500">Skipped</span>
+                        ) : isCorrect ? (
+                          <span className="text-green-600">Correct</span>
+                        ) : (
+                          <span className="text-red-600">Wrong</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{marks}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow>
+                  <TableCell colSpan={3} className="font-semibold">Total</TableCell>
+                  <TableCell className="font-semibold">{formatTime(totalTime)}</TableCell>
+                  <TableCell colSpan={1}></TableCell>
+                  <TableCell className="font-semibold">{calculateScore().totalScore}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
         </DialogContent>
       </Dialog>

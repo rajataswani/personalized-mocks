@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 interface TimerProps {
   isRunning: boolean;
   shouldReset?: boolean;
+  onTimeUpdate?: (time: number) => void;
 }
 
-export const Timer = ({ isRunning, shouldReset }: TimerProps) => {
+export const Timer = ({ isRunning, shouldReset, onTimeUpdate }: TimerProps) => {
   const [time, setTime] = useState(0);
 
   useEffect(() => {
@@ -14,7 +15,11 @@ export const Timer = ({ isRunning, shouldReset }: TimerProps) => {
     
     if (isRunning) {
       timer = setInterval(() => {
-        setTime((prev) => prev + 1);
+        setTime((prev) => {
+          const newTime = prev + 1;
+          onTimeUpdate?.(newTime);
+          return newTime;
+        });
       }, 1000);
     }
 
@@ -23,7 +28,7 @@ export const Timer = ({ isRunning, shouldReset }: TimerProps) => {
     }
 
     return () => clearInterval(timer);
-  }, [isRunning, shouldReset]);
+  }, [isRunning, shouldReset, onTimeUpdate]);
 
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
