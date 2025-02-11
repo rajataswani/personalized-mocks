@@ -334,7 +334,7 @@ const Index = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Question</TableHead>
+                  <TableHead>Q.No</TableHead>
                   <TableHead>Your Answer</TableHead>
                   <TableHead>Correct Answer</TableHead>
                   <TableHead>Time Taken</TableHead>
@@ -351,7 +351,7 @@ const Index = () => {
 
                   return (
                     <TableRow key={index}>
-                      <TableCell>{question.question}</TableCell>
+                      <TableCell>Question {index + 1}</TableCell>
                       <TableCell>
                         {userAnswer !== undefined ? question.options[userAnswer] : "Skipped"}
                       </TableCell>
