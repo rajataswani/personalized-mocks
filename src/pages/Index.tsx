@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Timer } from "@/components/Timer";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -6,7 +5,6 @@ import { Question } from "@/components/Question";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditTestDialog } from "@/components/EditTestDialog";
-import { Input } from "@/components/ui/input";
 import { 
   Dialog,
   DialogContent,
@@ -62,8 +60,25 @@ const Index = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [testName, setTestName] = useState("");
   const { toast } = useToast();
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto space-y-8">
+          <div className="flex items-center justify-between">
+            <EditTestDialog 
+              questions={questions}
+              onQuestionsChange={setQuestions}
+            />
+          </div>
+          <div className="bg-white shadow-sm rounded-xl p-6 text-center">
+            <p className="text-gray-500">No questions available. Please add questions using the Edit Test button.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleAnswer = (answerIndex: number) => {
     if (!isStarted) {
@@ -191,26 +206,17 @@ const Index = () => {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="flex gap-4">
-              <Input
-                placeholder="Enter test name"
-                value={testName}
-                onChange={(e) => setTestName(e.target.value)}
-                className="w-48"
-                disabled={isStarted || isSubmitted}
-              />
-              <Button
-                onClick={() => setIsStarted(true)}
-                disabled={isStarted || isSubmitted || !testName.trim()}
-                variant="outline"
-              >
-                Start Test
-              </Button>
-              <EditTestDialog 
-                questions={questions}
-                onQuestionsChange={setQuestions}
-              />
-            </div>
+            <Button
+              onClick={() => setIsStarted(true)}
+              disabled={isStarted || isSubmitted}
+              variant="outline"
+            >
+              Start Test
+            </Button>
+            <EditTestDialog 
+              questions={questions}
+              onQuestionsChange={setQuestions}
+            />
           </div>
           <div className="flex items-center space-x-4">
             <Timer isRunning={isStarted} />
@@ -293,7 +299,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Results Dialog */}
       <Dialog open={showResults} onOpenChange={setShowResults}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
