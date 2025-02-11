@@ -5,11 +5,12 @@ import { Question } from "@/components/Question";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { EditTestDialog } from "@/components/EditTestDialog";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -63,6 +64,7 @@ const Index = () => {
   const [timerReset, setTimerReset] = useState(false);
   const [totalTime, setTotalTime] = useState(0);
   const { toast } = useToast();
+  const [showSummary, setShowSummary] = useState(false);
 
   if (questions.length === 0) {
     return (
@@ -221,6 +223,29 @@ const Index = () => {
     return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
   };
 
+  const getSummaryText = () => {
+    const { totalScore, correctCount, wrongCount, skippedCount } = calculateScore();
+    const averageTimePerQuestion = totalTime / questions.length;
+    
+    const fastestQuestion = Object.entries(questionTimes)
+      .sort(([, a], [, b]) => a - b)[0];
+    const slowestQuestion = Object.entries(questionTimes)
+      .sort(([, a], [, b]) => b - a)[0];
+
+    return {
+      totalQuestions: questions.length,
+      totalScore,
+      correctCount,
+      wrongCount,
+      skippedCount,
+      totalTime: formatTime(totalTime),
+      averageTime: formatTime(Math.floor(averageTimePerQuestion)),
+      fastestQuestion: `Q${Number(fastestQuestion?.[0]) + 1} (${formatTime(fastestQuestion?.[1] || 0)})`,
+      slowestQuestion: `Q${Number(slowestQuestion?.[0]) + 1} (${formatTime(slowestQuestion?.[1] || 0)})`,
+      accuracy: `${((correctCount / questions.length) * 100).toFixed(1)}%`
+    };
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -297,6 +322,74 @@ const Index = () => {
           </div>
           
           <div className="space-x-4">
+            {isSubmitted && (
+              <Dialog open={showSummary} onOpenChange={setShowSummary}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary">View Summary</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Test Summary</DialogTitle>
+                  </DialogHeader>
+                  <div className="p-6 space-y-4">
+                    {(() => {
+                      const summary = getSummaryText();
+                      return (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <p className="text-sm text-gray-500">Total Questions</p>
+                              <p className="text-2xl font-bold">{summary.totalQuestions}</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <p className="text-sm text-gray-500">Total Score</p>
+                              <p className="text-2xl font-bold">{summary.totalScore}</p>
+                            </div>
+                            <div className="bg-green-50 p-4 rounded-lg">
+                              <p className="text-sm text-green-600">Correct Answers</p>
+                              <p className="text-2xl font-bold text-green-600">{summary.correctCount}</p>
+                            </div>
+                            <div className="bg-red-50 p-4 rounded-lg">
+                              <p className="text-sm text-red-600">Wrong Answers</p>
+                              <p className="text-2xl font-bold text-red-600">{summary.wrongCount}</p>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <p className="text-sm text-gray-500">Skipped Questions</p>
+                              <p className="text-2xl font-bold">{summary.skippedCount}</p>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                              <p className="text-sm text-blue-600">Accuracy</p>
+                              <p className="text-2xl font-bold text-blue-600">{summary.accuracy}</p>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                            <p className="font-medium">Time Analysis</p>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p className="text-gray-500">Total Time</p>
+                                <p className="font-semibold">{summary.totalTime}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Average Time/Question</p>
+                                <p className="font-semibold">{summary.averageTime}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Fastest Question</p>
+                                <p className="font-semibold">{summary.fastestQuestion}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Slowest Question</p>
+                                <p className="font-semibold">{summary.slowestQuestion}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
             <Button 
               variant="destructive"
               onClick={handleSubmit}
